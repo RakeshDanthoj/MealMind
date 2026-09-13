@@ -105,6 +105,7 @@ interface AppContextValue {
   logout: () => Promise<void>;
   updateOnboarding: (step: number, answers: Partial<UserProfile>) => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   acknowledgeDisclaimer: () => Promise<void>;
   generatePlan: () => Promise<WeeklyPlan>;
   swapMealAction: (date: string, slot: MealSlot) => Promise<void>;
@@ -384,12 +385,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return state.coachMarksShown.includes(markId);
   };
 
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!state.profile) return;
+    
+    const updatedProfile = {
+      ...state.profile,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    } as UserProfile;
+
+    await storage.setProfile(updatedProfile);
+    dispatch({ type: 'SET_PROFILE', payload: updatedProfile });
+  };
+
   const value: AppContextValue = {
     state,
     login,
     logout,
     updateOnboarding,
     completeOnboarding,
+    updateProfile,
     acknowledgeDisclaimer,
     generatePlan,
     swapMealAction,

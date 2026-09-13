@@ -20,6 +20,7 @@ interface MealCardProps {
   isLimitedMode?: boolean;
   showCoachMark?: boolean;
   onCoachMarkDismiss?: () => void;
+  hideCalories?: boolean;
 }
 
 export function MealCard({
@@ -31,6 +32,7 @@ export function MealCard({
   isLimitedMode = false,
   showCoachMark = false,
   onCoachMarkDismiss,
+  hideCalories = false,
 }: MealCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDislikeConfirm, setShowDislikeConfirm] = useState(false);
@@ -134,8 +136,9 @@ export function MealCard({
             {meal.name}
           </Text>
           <Text style={styles.meta}>
-            {getCuisineLabel(meal.cuisine)} • {meal.kcal} kcal
+            {getCuisineLabel(meal.cuisine)}
             {meal.prep_minutes ? ` • ${meal.prep_minutes} min` : ''}
+            {!hideCalories && ` • ${meal.kcal} kcal`}
           </Text>
         </View>
 

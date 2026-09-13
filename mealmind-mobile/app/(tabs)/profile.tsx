@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,12 +21,15 @@ import {
   ACTIVITY_OPTIONS,
   COOKING_SKILL_OPTIONS,
   CUISINE_OPTIONS,
+  COMMON_ALLERGENS,
 } from '../../src/constants';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { state, logout, acknowledgeDisclaimer } = useApp();
+  const { state, logout, acknowledgeDisclaimer, updateProfile } = useApp();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showAllergenEditor, setShowAllergenEditor] = useState(false);
+  const [newAllergen, setNewAllergen] = useState('');
 
   const profile = state.profile;
 
@@ -67,6 +72,37 @@ export default function ProfileScreen() {
     return cuisines
       .map(c => CUISINE_OPTIONS.find(o => o.value === c)?.label || c)
       .join(', ');
+  };
+
+  const handleAddAllergen = async () => {
+    if (!newAllergen.trim()) return;
+    
+    const allergenToAdd = newAllergen.trim().toLowerCase();
+    const currentAllergens = profile?.allergens || [];
+    
+    if (currentAllergens.includes(allergenToAdd)) {
+      Alert.alert('Already Added', 'This allergen is already in your list.');
+      return;
+    }
+    
+    await updateProfile({ allergens: [...currentAllergens, allergenToAdd] });
+    setNewAllergen('');
+  };
+
+  const handleRemoveAllergen = async (allergen: string) => {
+    const currentAllergens = profile?.allergens || [];
+    await updateProfile({ 
+      allergens: currentAllergens.filter(a => a !== allergen) 
+    });
+  };
+
+  const handleQuickAddAllergen = async (allergen: string) => {
+    const allergenLower = allergen.toLowerCase();
+    const currentAllergens = profile?.allergens || [];
+    
+    if (currentAllergens.includes(allergenLower)) return;
+    
+    await updateProfile({ allergens: [...currentAllergens, allergenLower] });
   };
 
   if (!profile) {
@@ -121,14 +157,32 @@ export default function ProfileScreen() {
             label="Preferred Cuisines"
             value={getCuisineLabels(profile.cuisines)}
           />
-          <ProfileItem
-            label="Allergens to Avoid"
-            value={
-              (profile.allergens?.length ?? 0) > 0 
-                ? profile.allergens!.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ')
-                : 'None specified'
-            }
-          />
+          
+          <View style={styles.allergenSection}>
+            <View style={styles.allergenHeader}>
+              <Text style={styles.allergenLabel}>Allergens to Avoid</Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => setShowAllergenEditor(true)}
+              >
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {(profile.allergens?.length ?? 0) > 0 ? (
+              <View style={styles.allergenTags}>
+                {profile.allergens!.map(allergen => (
+                  <View key={allergen} style={styles.allergenTag}>
+                    <Text style={styles.allergenTagText}>
+                      {allergen.charAt(0).toUpperCase() + allergen.slice(1)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.noAllergens}>None specified</Text>
+            )}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -223,6 +277,80 @@ export default function ProfileScreen() {
 
         <Text style={styles.version}>MealMind v1.0.0 (P0)</Text>
       </ScrollView>
+
+      <Modal
+        visible={showAllergenEditor}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAllergenEditor(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.allergenEditorSheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.allergenEditorTitle}>Edit Allergens</Text>
+            
+            <View style={styles.addAllergenRow}>
+              <TextInput
+                style={styles.allergenInput}
+                placeholder="Add allergen..."
+                placeholderTextColor={COLORS.textLight}
+                value={newAllergen}
+                onChangeText={setNewAllergen}
+                onSubmitEditing={handleAddAllergen}
+                returnKeyType="done"
+                autoCapitalize="none"
+              />
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={handleAddAllergen}
+              >
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.quickAddLabel}>Quick add:</Text>
+            <View style={styles.quickAddTags}>
+              {COMMON_ALLERGENS.filter(
+                a => !(profile?.allergens || []).includes(a.toLowerCase())
+              ).map(allergen => (
+                <TouchableOpacity
+                  key={allergen}
+                  style={styles.quickAddTag}
+                  onPress={() => handleQuickAddAllergen(allergen)}
+                >
+                  <Text style={styles.quickAddTagText}>+ {allergen}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {(profile?.allergens?.length ?? 0) > 0 && (
+              <>
+                <Text style={styles.currentLabel}>Current allergens:</Text>
+                <View style={styles.currentTags}>
+                  {profile?.allergens?.map(allergen => (
+                    <TouchableOpacity
+                      key={allergen}
+                      style={styles.currentTag}
+                      onPress={() => handleRemoveAllergen(allergen)}
+                    >
+                      <Text style={styles.currentTagText}>
+                        {allergen.charAt(0).toUpperCase() + allergen.slice(1)}
+                      </Text>
+                      <Text style={styles.removeTagText}> ✕</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <Button
+              title="Done"
+              onPress={() => setShowAllergenEditor(false)}
+              style={styles.doneButton}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -392,5 +520,157 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: SPACING.lg,
+  },
+  allergenSection: {
+    paddingVertical: SPACING.sm,
+  },
+  allergenHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  allergenLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  editButton: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+  },
+  editButtonText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  allergenTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  allergenTag: {
+    backgroundColor: `${COLORS.error}15`,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  allergenTagText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.error,
+    fontWeight: '500',
+  },
+  noAllergens: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+    justifyContent: 'flex-end',
+  },
+  allergenEditorSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xxl,
+    maxHeight: '80%',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: COLORS.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: SPACING.md,
+  },
+  allergenEditorTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  addAllergenRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  allergenInput: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+  },
+  addButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 12,
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    color: COLORS.white,
+    fontWeight: '600',
+    fontSize: FONT_SIZES.sm,
+  },
+  quickAddLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
+  quickAddTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginBottom: SPACING.lg,
+  },
+  quickAddTag: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  quickAddTagText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  currentLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
+  currentTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginBottom: SPACING.lg,
+  },
+  currentTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${COLORS.error}15`,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  currentTagText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.error,
+    fontWeight: '500',
+  },
+  removeTagText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.error,
+  },
+  doneButton: {
+    marginTop: SPACING.sm,
   },
 });

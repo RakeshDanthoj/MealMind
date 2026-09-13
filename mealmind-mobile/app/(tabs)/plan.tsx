@@ -177,7 +177,7 @@ export default function PlanScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Plan</Text>
         <Text style={styles.headerSubtitle}>
-          ~{plan.daily_kcal_target} kcal/day
+          7-day personalized meal plan
         </Text>
       </View>
 
@@ -276,15 +276,9 @@ export default function PlanScreen() {
             isLimitedMode={isLimitedMode}
             showCoachMark={showMealCoachMark && index === 0}
             onCoachMarkDismiss={handleDismissMealCoachMark}
+            hideCalories={true}
           />
         ))}
-
-        <View style={styles.dayStats}>
-          <Text style={styles.dayStatsLabel}>Day total</Text>
-          <Text style={styles.dayStatsValue}>
-            ~{selectedDay.meals.reduce((sum, m) => sum + m.kcal, 0)} kcal
-          </Text>
-        </View>
       </ScrollView>
 
       <Modal
@@ -500,24 +494,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.secondary,
     fontWeight: '500',
-  },
-  dayStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: 12,
-    marginTop: SPACING.sm,
-  },
-  dayStatsLabel: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  dayStatsValue: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
-    color: COLORS.primary,
   },
   emptyState: {
     flex: 1,
