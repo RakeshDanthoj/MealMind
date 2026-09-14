@@ -18,6 +18,7 @@ import {
   logMealStatus 
 } from '../services/mock-api';
 import { analytics } from '../services/analytics';
+import { DEV_SKIP_USER_ID } from '../constants';
 
 interface AppState {
   isLoading: boolean;
@@ -116,6 +117,8 @@ interface AppContextValue {
   markFirstPlanViewed: () => Promise<void>;
   markCoachMarkShown: (markId: string) => Promise<void>;
   hasCoachMarkBeenShown: (markId: string) => boolean;
+  skipLoginDev: () => Promise<void>;
+  skipToSamplePlanDev: () => Promise<WeeklyPlan>;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -385,6 +388,78 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return state.coachMarksShown.includes(markId);
   };
 
+  const skipLoginDev = async () => {
+    const auth: AuthState = {
+      isAuthenticated: true,
+      user_id: DEV_SKIP_USER_ID,
+      auth_method: 'phone',
+      phone: '0000000000',
+    };
+    
+    await storage.setAuth(auth);
+    dispatch({ type: 'SET_AUTH', payload: auth });
+
+    const newOnboarding: OnboardingState = {
+      currentStep: 1,
+      answers: { user_id: DEV_SKIP_USER_ID },
+      completed: false,
+    };
+    await storage.setOnboarding(newOnboarding);
+    dispatch({ type: 'SET_ONBOARDING', payload: newOnboarding });
+  };
+
+  const skipToSamplePlanDev = async (): Promise<WeeklyPlan> => {
+    const auth: AuthState = {
+      isAuthenticated: true,
+      user_id: DEV_SKIP_USER_ID,
+      auth_method: 'phone',
+      phone: '0000000000',
+    };
+    
+    await storage.setAuth(auth);
+    dispatch({ type: 'SET_AUTH', payload: auth });
+
+    const profile: UserProfile = {
+      user_id: DEV_SKIP_USER_ID,
+      goal: 'healthy_lifestyle',
+      routine: 'some_time',
+      age: 30,
+      gender: 'prefer_not_to_say',
+      height_cm: 170,
+      weight_kg: 70,
+      activity: 'moderately_active',
+      medical_conditions: [],
+      medical_disclaimer_acked: true,
+      cooking_skill: 'comfortable',
+      cuisines: ['indian_general', 'north_indian', 'south_indian'],
+      allergens: [],
+      privacy_consent_given: true,
+      onboarding_completed: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const completedOnboarding: OnboardingState = {
+      currentStep: 10,
+      answers: profile,
+      completed: true,
+    };
+
+    await Promise.all([
+      storage.setProfile(profile),
+      storage.setOnboarding(completedOnboarding),
+    ]);
+
+    dispatch({ type: 'SET_PROFILE', payload: profile });
+    dispatch({ type: 'SET_ONBOARDING', payload: completedOnboarding });
+
+    const plan = await generateWeeklyPlan(profile);
+    await storage.setCurrentPlan(plan);
+    dispatch({ type: 'SET_CURRENT_PLAN', payload: plan });
+
+    return plan;
+  };
+
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!state.profile) return;
     
@@ -415,6 +490,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     markFirstPlanViewed,
     markCoachMarkShown,
     hasCoachMarkBeenShown,
+    skipLoginDev,
+    skipToSamplePlanDev,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

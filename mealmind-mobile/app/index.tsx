@@ -1,19 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../src/context/AppContext';
 import { Button } from '../src/components';
-import { COLORS, SPACING, FONT_SIZES } from '../src/constants';
+import { COLORS, SPACING, FONT_SIZES, DEV_SKIP_AUTH } from '../src/constants';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { state } = useApp();
+  const { state, skipLoginDev, skipToSamplePlanDev } = useApp();
+  const [devSkipLoading, setDevSkipLoading] = useState<'login' | 'plan' | null>(null);
 
   useEffect(() => {
     if (!state.isLoading) {
@@ -28,6 +30,26 @@ export default function WelcomeScreen() {
       }
     }
   }, [state.isLoading, state.auth.isAuthenticated, state.onboarding.completed, state.currentPlan]);
+
+  const handleSkipLogin = async () => {
+    setDevSkipLoading('login');
+    try {
+      await skipLoginDev();
+      router.replace('/privacy-consent');
+    } finally {
+      setDevSkipLoading(null);
+    }
+  };
+
+  const handleSkipToPlan = async () => {
+    setDevSkipLoading('plan');
+    try {
+      await skipToSamplePlanDev();
+      router.replace('/(tabs)/plan');
+    } finally {
+      setDevSkipLoading(null);
+    }
+  };
 
   if (state.isLoading) {
     return (
@@ -86,6 +108,38 @@ export default function WelcomeScreen() {
           size="large"
           style={styles.secondaryButton}
         />
+        
+        {DEV_SKIP_AUTH && (
+          <View style={styles.devSkipSection}>
+            <View style={styles.devDivider}>
+              <View style={styles.devDividerLine} />
+              <Text style={styles.devDividerText}>DEV ONLY</Text>
+              <View style={styles.devDividerLine} />
+            </View>
+            <TouchableOpacity
+              style={styles.devSkipButton}
+              onPress={handleSkipLogin}
+              disabled={devSkipLoading !== null}
+            >
+              {devSkipLoading === 'login' ? (
+                <ActivityIndicator size="small" color={COLORS.textSecondary} />
+              ) : (
+                <Text style={styles.devSkipText}>Skip login (dev)</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.devSkipButton}
+              onPress={handleSkipToPlan}
+              disabled={devSkipLoading !== null}
+            >
+              {devSkipLoading === 'plan' ? (
+                <ActivityIndicator size="small" color={COLORS.textSecondary} />
+              ) : (
+                <Text style={styles.devSkipText}>Skip to Plan home (dev)</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -197,4 +251,32 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   secondaryButton: {},
+  devSkipSection: {
+    marginTop: SPACING.lg,
+  },
+  devDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  devDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  devDividerText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textLight,
+    marginHorizontal: SPACING.sm,
+    fontWeight: '500',
+  },
+  devSkipButton: {
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+  },
+  devSkipText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+  },
 });
