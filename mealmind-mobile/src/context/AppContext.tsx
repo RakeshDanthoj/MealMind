@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '../utils/uuid';
 import { 
   AuthState, 
   UserProfile, 
@@ -161,7 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (method: 'phone' | 'google' | 'apple', identifier?: string) => {
-    const userId = uuidv4();
+    const userId = generateUUID();
     const auth: AuthState = {
       isAuthenticated: true,
       user_id: userId,
