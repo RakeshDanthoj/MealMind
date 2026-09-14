@@ -8,12 +8,16 @@ import {
 } from '../types';
 
 /**
- * DEV_SKIP_AUTH: Enables "Skip login (dev)" buttons on Welcome screen.
+ * DEV_SKIP_AUTH: Enables "Skip login (dev)" buttons on Welcome and Auth screens.
+ * 
+ * Enabled when:
+ * - __DEV__ is true (standard React Native dev mode), OR
+ * - EXPO_PUBLIC_DEV_SKIP_AUTH=1 is set in .env.local (for Expo Go when __DEV__ is false)
  * 
  * WARNING: This is a temporary developer convenience feature.
- * Set to `false` or remove entirely before production release.
+ * Production builds must NOT ship with this enabled.
  */
-export const DEV_SKIP_AUTH = __DEV__;
+export const DEV_SKIP_AUTH = __DEV__ || process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === '1';
 
 export const DEV_SKIP_USER_ID = 'dev-skip-user';
 
