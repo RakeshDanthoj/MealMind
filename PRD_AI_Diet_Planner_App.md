@@ -205,9 +205,20 @@ post-MVP).
 
 ## 11. Platform 
 
-- 
+### Mobile (original MVP)
 
-- MVP platform: Native mobile app iOS and Android. 
+- Native mobile app: iOS and Android
+- Remains the original MVP platform
+
+### Web (approved v1 surface)
+
+- **Web app:** Next.js (App Router) deployed on Vercel
+- **Backend:** Same Supabase project and schema as mobile
+- **Scope:** Same core loop as mobile P0 (onboarding → plan → meal actions → tracking)
+- **Monetization:** Trial + Razorpay paywall ships in web v1 (mobile P1 monetization included from first web release)
+- **Details:** See `WEB_V1_PRD.md` for full web-specific requirements
+
+### Future
 
 - Wearable/health app integration (Google Fit, Apple Health): undecided, to be revisited post-MVP. 
 

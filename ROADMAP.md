@@ -33,6 +33,46 @@ Ship criterion for "MVP live": **P0 complete + P1 revenue path live** (3-day tri
 
 ---
 
+## Web v1 Workstream (parallel to mobile)
+
+**Repo:** mealmind-web (Next.js App Router)  
+**Deploy:** Vercel from GitHub repo RakeshDanthoj/MealMind  
+**Backend:** Same Supabase project and schema as mobile  
+**Approved:** 2026-09-14 by Rakesh
+
+### Scope
+
+Web v1 ships **P0 loop + P1 monetization** together in the first release:
+
+- Logged-out marketing: Home, How it works, Pricing, Privacy
+- Supabase Auth (email + Google)
+- Full onboarding → plan generation → first-plan reveal
+- Plan view with all meal actions (swap, don't like, regenerate, cheat/festive)
+- Recipe library with paywall (free preview, paid detail)
+- 3-day trial starting at first plan view
+- Razorpay checkout (test mode): Monthly Pro ₹1,299, weekly ₹599, monthly one-time ₹1,499, à la carte recipe ₹99
+- Entitlements granted only after Razorpay webhook verification
+
+### Out of Web v1
+
+Yearly subscription, video recipes, grocery, wearables, deep tracking, festive pack pricing.
+
+### Owners
+
+| Owner | Responsibility |
+|-------|----------------|
+| Freddy | Next.js UI + Vercel |
+| Billy | Supabase Auth, entitlements, Razorpay, RLS/paywall |
+| Paparao | PR review |
+
+### Success
+
+New user can sign up on Vercel URL → finish onboarding → see weekly plan → use meal actions during trial → hit paywall after trial → complete test-mode Razorpay purchase.
+
+**Details:** See `WEB_V1_PRD.md` for full specification.
+
+---
+
 ## P0 — Foundation (must ship first)
 
 ### P0.1 Product & design
