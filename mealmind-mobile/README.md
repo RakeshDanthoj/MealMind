@@ -12,6 +12,41 @@ npm install --legacy-peer-deps
 npx expo start
 ```
 
+## Supabase Configuration
+
+The app supports Supabase as a backend data store. When configured, user profiles, meal plans, and dish avoidances are persisted to your Supabase project. Without configuration, the app falls back to local mock data.
+
+### Setup
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. Fill in your Supabase credentials in `.env.local`:
+   ```bash
+   EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
+
+   Get these values from your [Supabase Dashboard](https://supabase.com/dashboard/project/_/settings/api).
+
+3. The database schema is documented in `supabase/migrations/20260914000000_mealmind_p0_core_schema.sql`.
+
+### Behavior
+
+- **With Supabase configured + real Auth session**: User data is synced to the cloud.
+- **Without Supabase / dev mode**: The app uses local AsyncStorage and mock data, allowing full functionality for development and testing.
+- **`dev-skip-user` ID**: A special user ID that bypasses Supabase writes, useful for local-only testing.
+
+### Auth Integration Note
+
+**Important:** The Supabase data layer requires a real Supabase Auth session to persist data. The database uses Row Level Security (RLS) policies where `profiles.id` references `auth.users`.
+
+Currently, the app uses mock auth (generates local UUIDs). These local UUIDs are **not** valid Supabase Auth users, so writes will be skipped until real Supabase Auth is implemented.
+
+The data layer automatically detects this: it checks for an active Supabase Auth session before attempting writes. If no session exists, data stays local (AsyncStorage) and the app continues to function normally. When Supabase Auth is integrated (phone OTP, Google, Apple sign-in), persistence will work automatically.
+
 Then:
 - Press `w` to open in web browser
 - Press `a` to open in Android emulator/device

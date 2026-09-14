@@ -16,7 +16,7 @@ import {
   regenerateDay, 
   setDayFlags, 
   logMealStatus 
-} from '../services/mock-api';
+} from '../services/api';
 import { analytics } from '../services/analytics';
 import { DEV_SKIP_AUTH, DEV_SKIP_USER_ID } from '../constants';
 
