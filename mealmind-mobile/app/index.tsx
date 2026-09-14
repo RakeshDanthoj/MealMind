@@ -5,16 +5,19 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../src/context/AppContext';
 import { Button } from '../src/components';
 import { COLORS, SPACING, FONT_SIZES, DEV_SKIP_AUTH } from '../src/constants';
+import { storage } from '../src/services/storage';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { state, skipLoginDev, skipToSamplePlanDev } = useApp();
+  const { state, skipLoginDev, skipToSamplePlanDev, logout } = useApp();
   const [devSkipLoading, setDevSkipLoading] = useState<'login' | 'plan' | null>(null);
 
   useEffect(() => {
@@ -51,6 +54,24 @@ export default function WelcomeScreen() {
     }
   };
 
+  const handleResetAppData = () => {
+    Alert.alert(
+      'Reset App Data',
+      'This will clear all app data and return you to the Welcome screen. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            await storage.clearAll();
+            await logout();
+          },
+        },
+      ]
+    );
+  };
+
   if (state.isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -61,86 +82,99 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>M</Text>
-          </View>
-          <Text style={styles.appName}>MealMind</Text>
-        </View>
-
-        <View style={styles.heroSection}>
-          <Text style={styles.tagline}>
-            Plans that fit your life
-          </Text>
-          <Text style={styles.subtitle}>
-            AI nutrition on dietician-validated guidelines
-          </Text>
-        </View>
-
-        <View style={styles.features}>
-          <FeatureItem 
-            icon="✓" 
-            text="Personalized weekly meal plans" 
-          />
-          <FeatureItem 
-            icon="✓" 
-            text="Cuisines you love — Indian, Asian & more" 
-          />
-          <FeatureItem 
-            icon="✓" 
-            text="Swap meals instantly with AI" 
-          />
-        </View>
-      </View>
-
-      <View style={styles.footer}>
-        <Button
-          title="Create account"
-          onPress={() => router.push('/auth?mode=signup')}
-          size="large"
-          style={styles.primaryButton}
-        />
-        <Button
-          title="Log in"
-          variant="outline"
-          onPress={() => router.push('/auth?mode=login')}
-          size="large"
-          style={styles.secondaryButton}
-        />
-        
-        {DEV_SKIP_AUTH && (
-          <View style={styles.devSkipSection}>
-            <View style={styles.devDivider}>
-              <View style={styles.devDividerLine} />
-              <Text style={styles.devDividerText}>DEV ONLY</Text>
-              <View style={styles.devDividerLine} />
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logo}>
+              <Text style={styles.logoText}>M</Text>
             </View>
-            <TouchableOpacity
-              style={styles.devSkipButton}
-              onPress={handleSkipLogin}
-              disabled={devSkipLoading !== null}
-            >
-              {devSkipLoading === 'login' ? (
-                <ActivityIndicator size="small" color={COLORS.textSecondary} />
-              ) : (
-                <Text style={styles.devSkipText}>Skip login (dev)</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.devSkipButton}
-              onPress={handleSkipToPlan}
-              disabled={devSkipLoading !== null}
-            >
-              {devSkipLoading === 'plan' ? (
-                <ActivityIndicator size="small" color={COLORS.textSecondary} />
-              ) : (
-                <Text style={styles.devSkipText}>Skip to Plan home (dev)</Text>
-              )}
-            </TouchableOpacity>
+            <Text style={styles.appName}>MealMind</Text>
           </View>
-        )}
-      </View>
+
+          <View style={styles.heroSection}>
+            <Text style={styles.tagline}>
+              Plans that fit your life
+            </Text>
+            <Text style={styles.subtitle}>
+              AI nutrition on dietician-validated guidelines
+            </Text>
+          </View>
+
+          <View style={styles.features}>
+            <FeatureItem 
+              icon="✓" 
+              text="Personalized weekly meal plans" 
+            />
+            <FeatureItem 
+              icon="✓" 
+              text="Cuisines you love — Indian, Asian & more" 
+            />
+            <FeatureItem 
+              icon="✓" 
+              text="Swap meals instantly with AI" 
+            />
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Button
+            title="Create account"
+            onPress={() => router.push('/auth?mode=signup')}
+            size="large"
+            style={styles.primaryButton}
+          />
+          <Button
+            title="Log in"
+            variant="outline"
+            onPress={() => router.push('/auth?mode=login')}
+            size="large"
+            style={styles.secondaryButton}
+          />
+          
+          {DEV_SKIP_AUTH && (
+            <View style={styles.devSkipSection}>
+              <View style={styles.devDivider}>
+                <View style={styles.devDividerLine} />
+                <Text style={styles.devDividerText}>DEV ONLY</Text>
+                <View style={styles.devDividerLine} />
+              </View>
+              <TouchableOpacity
+                style={styles.devSkipButton}
+                onPress={handleSkipLogin}
+                disabled={devSkipLoading !== null}
+              >
+                {devSkipLoading === 'login' ? (
+                  <ActivityIndicator size="small" color={COLORS.textSecondary} />
+                ) : (
+                  <Text style={styles.devSkipText}>Skip login (dev)</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.devSkipButton}
+                onPress={handleSkipToPlan}
+                disabled={devSkipLoading !== null}
+              >
+                {devSkipLoading === 'plan' ? (
+                  <ActivityIndicator size="small" color={COLORS.textSecondary} />
+                ) : (
+                  <Text style={styles.devSkipText}>Skip to Plan home (dev)</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.devResetButton}
+                onPress={handleResetAppData}
+                disabled={devSkipLoading !== null}
+              >
+                <Text style={styles.devResetText}>Reset app data (dev)</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -166,6 +200,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
@@ -277,6 +317,16 @@ const styles = StyleSheet.create({
   devSkipText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  devResetButton: {
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  devResetText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.error,
     textDecorationLine: 'underline',
   },
 });

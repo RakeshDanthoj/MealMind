@@ -8,22 +8,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../src/context/AppContext';
 import { Button } from '../src/components';
-import { COLORS, SPACING, FONT_SIZES } from '../src/constants';
+import { COLORS, SPACING, FONT_SIZES, DEV_SKIP_AUTH } from '../src/constants';
+import { storage } from '../src/services/storage';
 
 export default function AuthScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode: 'signup' | 'login' }>();
-  const { login } = useApp();
+  const { login, logout, skipLoginDev, skipToSamplePlanDev } = useApp();
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [devSkipLoading, setDevSkipLoading] = useState<'login' | 'plan' | null>(null);
 
   const isSignup = mode === 'signup';
 
@@ -58,119 +62,204 @@ export default function AuthScreen() {
     router.replace('/privacy-consent');
   };
 
+  const handleSkipLogin = async () => {
+    setDevSkipLoading('login');
+    try {
+      await skipLoginDev();
+      router.replace('/privacy-consent');
+    } finally {
+      setDevSkipLoading(null);
+    }
+  };
+
+  const handleSkipToPlan = async () => {
+    setDevSkipLoading('plan');
+    try {
+      await skipToSamplePlanDev();
+      router.replace('/(tabs)/plan');
+    } finally {
+      setDevSkipLoading(null);
+    }
+  };
+
+  const handleResetAppData = () => {
+    Alert.alert(
+      'Reset App Data',
+      'This will clear all app data and return you to the Welcome screen. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            await storage.clearAll();
+            await logout();
+            router.replace('/');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
 
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            {isSignup ? 'Create your account' : 'Welcome back'}
-          </Text>
-          <Text style={styles.subtitle}>
-            {isSignup 
-              ? 'Start your personalized nutrition journey' 
-              : 'Sign in to continue your plan'}
-          </Text>
+          <View style={styles.content}>
+            <Text style={styles.title}>
+              {isSignup ? 'Create your account' : 'Welcome back'}
+            </Text>
+            <Text style={styles.subtitle}>
+              {isSignup 
+                ? 'Start your personalized nutrition journey' 
+                : 'Sign in to continue your plan'}
+            </Text>
 
-          <View style={styles.phoneSection}>
-            <Text style={styles.inputLabel}>Phone number</Text>
-            <View style={styles.phoneInputContainer}>
-              <View style={styles.countryCode}>
-                <Text style={styles.countryCodeText}>+91</Text>
+            <View style={styles.phoneSection}>
+              <Text style={styles.inputLabel}>Phone number</Text>
+              <View style={styles.phoneInputContainer}>
+                <View style={styles.countryCode}>
+                  <Text style={styles.countryCodeText}>+91</Text>
+                </View>
+                <TextInput
+                  style={styles.phoneInput}
+                  placeholder="Enter your phone number"
+                  placeholderTextColor={COLORS.textLight}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                  maxLength={10}
+                  editable={!showOtp}
+                />
               </View>
-              <TextInput
-                style={styles.phoneInput}
-                placeholder="Enter your phone number"
-                placeholderTextColor={COLORS.textLight}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                maxLength={10}
-                editable={!showOtp}
-              />
+
+              {showOtp ? (
+                <View style={styles.otpSection}>
+                  <Text style={styles.inputLabel}>Enter OTP</Text>
+                  <TextInput
+                    style={styles.otpInput}
+                    placeholder="Enter 4-digit OTP"
+                    placeholderTextColor={COLORS.textLight}
+                    keyboardType="number-pad"
+                    value={otp}
+                    onChangeText={setOtp}
+                    maxLength={6}
+                    autoFocus
+                  />
+                  <Text style={styles.otpHint}>
+                    Demo: Enter any 4+ digits
+                  </Text>
+                  <Button
+                    title="Verify OTP"
+                    onPress={handleVerifyOtp}
+                    loading={loading}
+                    style={styles.verifyButton}
+                  />
+                  <TouchableOpacity onPress={() => setShowOtp(false)}>
+                    <Text style={styles.changeNumber}>Change phone number</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Button
+                  title="Send OTP"
+                  onPress={handleSendOtp}
+                  loading={loading}
+                  style={styles.sendOtpButton}
+                />
+              )}
             </View>
 
-            {showOtp ? (
-              <View style={styles.otpSection}>
-                <Text style={styles.inputLabel}>Enter OTP</Text>
-                <TextInput
-                  style={styles.otpInput}
-                  placeholder="Enter 4-digit OTP"
-                  placeholderTextColor={COLORS.textLight}
-                  keyboardType="number-pad"
-                  value={otp}
-                  onChangeText={setOtp}
-                  maxLength={6}
-                  autoFocus
-                />
-                <Text style={styles.otpHint}>
-                  Demo: Enter any 4+ digits
-                </Text>
-                <Button
-                  title="Verify OTP"
-                  onPress={handleVerifyOtp}
-                  loading={loading}
-                  style={styles.verifyButton}
-                />
-                <TouchableOpacity onPress={() => setShowOtp(false)}>
-                  <Text style={styles.changeNumber}>Change phone number</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Button
-                title="Send OTP"
-                onPress={handleSendOtp}
-                loading={loading}
-                style={styles.sendOtpButton}
-              />
-            )}
-          </View>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.socialButtons}>
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={() => handleSocialLogin('google')}
-              disabled={loading}
-            >
-              <Text style={styles.socialIcon}>G</Text>
-              <Text style={styles.socialText}>Google</Text>
-            </TouchableOpacity>
-
-            {Platform.OS === 'ios' && (
+            <View style={styles.socialButtons}>
               <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
-                onPress={() => handleSocialLogin('apple')}
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('google')}
                 disabled={loading}
               >
-                <Text style={[styles.socialIcon, styles.appleIcon]}></Text>
-                <Text style={[styles.socialText, styles.appleText]}>Apple</Text>
+                <Text style={styles.socialIcon}>G</Text>
+                <Text style={styles.socialText}>Google</Text>
               </TouchableOpacity>
+
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={() => handleSocialLogin('apple')}
+                  disabled={loading}
+                >
+                  <Text style={[styles.socialIcon, styles.appleIcon]}></Text>
+                  <Text style={[styles.socialText, styles.appleText]}>Apple</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.termsText}>
+              By continuing, you agree to our{' '}
+              <Text style={styles.link}>Terms of Service</Text> and{' '}
+              <Text style={styles.link}>Privacy Policy</Text>
+            </Text>
+
+            {DEV_SKIP_AUTH && (
+              <View style={styles.devSkipSection}>
+                <View style={styles.devDivider}>
+                  <View style={styles.devDividerLine} />
+                  <Text style={styles.devDividerText}>DEV ONLY</Text>
+                  <View style={styles.devDividerLine} />
+                </View>
+                <TouchableOpacity
+                  style={styles.devSkipButton}
+                  onPress={handleSkipLogin}
+                  disabled={devSkipLoading !== null || loading}
+                >
+                  {devSkipLoading === 'login' ? (
+                    <ActivityIndicator size="small" color={COLORS.textSecondary} />
+                  ) : (
+                    <Text style={styles.devSkipText}>Skip login (dev)</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.devSkipButton}
+                  onPress={handleSkipToPlan}
+                  disabled={devSkipLoading !== null || loading}
+                >
+                  {devSkipLoading === 'plan' ? (
+                    <ActivityIndicator size="small" color={COLORS.textSecondary} />
+                  ) : (
+                    <Text style={styles.devSkipText}>Skip to Plan home (dev)</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.devResetButton}
+                  onPress={handleResetAppData}
+                  disabled={devSkipLoading !== null || loading}
+                >
+                  <Text style={styles.devResetText}>Reset app data (dev)</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.termsText}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.link}>Terms of Service</Text> and{' '}
-            <Text style={styles.link}>Privacy Policy</Text>
-          </Text>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -183,6 +272,12 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   backButton: {
     paddingHorizontal: SPACING.lg,
@@ -345,5 +440,43 @@ const styles = StyleSheet.create({
   link: {
     color: COLORS.primary,
     fontWeight: '500',
+  },
+  devSkipSection: {
+    marginTop: SPACING.lg,
+  },
+  devDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  devDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  devDividerText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textLight,
+    marginHorizontal: SPACING.sm,
+    fontWeight: '500',
+  },
+  devSkipButton: {
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+  },
+  devSkipText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  devResetButton: {
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  devResetText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.error,
+    textDecorationLine: 'underline',
   },
 });

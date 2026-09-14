@@ -257,12 +257,40 @@ First-session overlays:
 
 ### Dev Skip Login
 
-When `DEV_SKIP_AUTH` is enabled (defaults to `__DEV__`), two skip buttons appear on the Welcome screen:
+When `DEV_SKIP_AUTH` is enabled, dev skip buttons appear on both the Welcome and Auth screens:
 
 - **Skip login (dev)** — Creates a mock user (`dev-skip-user`) and routes to privacy consent → onboarding flow
 - **Skip to Plan home (dev)** — Creates a mock user with a complete profile and generates a sample weekly plan, jumping directly to the Plan home tab
+- **Reset app data (dev)** — Clears all AsyncStorage data and returns to Welcome screen (useful when stuck mid-flow)
 
-These are convenience shortcuts for developers to quickly access screens without completing auth/onboarding. The flag is defined in `src/constants/index.ts` and should be disabled before production.
+The flag is defined in `src/constants/index.ts`:
+
+```typescript
+export const DEV_SKIP_AUTH = __DEV__ || process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === '1';
+```
+
+> **WARNING**: Production builds must NOT ship with `DEV_SKIP_AUTH` enabled.
+
+#### Expo Go Troubleshooting
+
+If you can't see the dev skip links in Expo Go:
+
+1. **Scroll down** — The dev links are in the footer below "Log in" / "Create account". On smaller screens, you may need to scroll to see them.
+
+2. **Check both screens** — Dev skip links appear on:
+   - **Welcome screen** (`/`) — Below the Log in button
+   - **Auth screen** (`/auth`) — Below the Terms of Service text
+
+3. **Stuck mid-flow?** — If the app auto-redirects due to existing AsyncStorage data:
+   - Navigate to the **Auth screen** (tap Log in from Welcome)
+   - Use **Reset app data (dev)** to clear all persisted state
+   - The app will return to Welcome where you can see all skip options
+
+4. **`__DEV__` is false in Expo Go?** — If dev buttons don't appear, `__DEV__` may not be set correctly. Create a `.env.local` file in the project root:
+   ```
+   EXPO_PUBLIC_DEV_SKIP_AUTH=1
+   ```
+   Then restart the Expo dev server (`npx expo start --clear`).
 
 ## Contract Documents
 
