@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import {
   UserProfile,
   WeeklyPlan,
@@ -15,6 +14,7 @@ import {
   MealStatus,
   PlanMode,
 } from '../types';
+import { generateUUID } from '../utils/uuid';
 import {
   ProfileRow,
   ProfileUpdate,
@@ -179,7 +179,7 @@ export function weeklyPlanToInserts(plan: WeeklyPlan): WeeklyPlanInserts {
   const mealInserts: { dayIndex: number; meal: PlanMealInsert }[] = [];
 
   plan.days.forEach((day, dayIndex) => {
-    const dayId = uuidv4();
+    const dayId = generateUUID();
 
     dayInserts.push({
       id: dayId,
@@ -195,7 +195,7 @@ export function weeklyPlanToInserts(plan: WeeklyPlan): WeeklyPlanInserts {
       mealInserts.push({
         dayIndex,
         meal: {
-          id: uuidv4(),
+          id: generateUUID(),
           plan_day_id: dayId,
           slot: meal.slot,
           dish_id: meal.dish_id,

@@ -35,9 +35,17 @@ The app supports Supabase as a backend data store. When configured, user profile
 
 ### Behavior
 
-- **With Supabase configured**: User data is synced to the cloud when the user has a real authenticated UUID.
+- **With Supabase configured + real Auth session**: User data is synced to the cloud.
 - **Without Supabase / dev mode**: The app uses local AsyncStorage and mock data, allowing full functionality for development and testing.
 - **`dev-skip-user` ID**: A special user ID that bypasses Supabase writes, useful for local-only testing.
+
+### Auth Integration Note
+
+**Important:** The Supabase data layer requires a real Supabase Auth session to persist data. The database uses Row Level Security (RLS) policies where `profiles.id` references `auth.users`.
+
+Currently, the app uses mock auth (generates local UUIDs). These local UUIDs are **not** valid Supabase Auth users, so writes will be skipped until real Supabase Auth is implemented.
+
+The data layer automatically detects this: it checks for an active Supabase Auth session before attempting writes. If no session exists, data stays local (AsyncStorage) and the app continues to function normally. When Supabase Auth is integrated (phone OTP, Google, Apple sign-in), persistence will work automatically.
 
 Then:
 - Press `w` to open in web browser

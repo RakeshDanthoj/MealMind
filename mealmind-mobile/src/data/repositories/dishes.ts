@@ -75,17 +75,13 @@ export async function filterDishes(
   const maxComplexityIndex = complexityOrder.indexOf(cookingSkill);
   const allowedComplexities = complexityOrder.slice(0, maxComplexityIndex + 1);
 
-  let query = supabase
+  const query = supabase
     .from('dish_catalog')
     .select('*')
     .eq('active', true)
     .contains('meal_slots', [slot])
     .overlaps('cuisines', cuisines)
     .in('prep_complexity', allowedComplexities);
-
-  if (avoidDishIds.length > 0) {
-    query = query.not('dish_id', 'in', `(${avoidDishIds.join(',')})`);
-  }
 
   const { data, error } = await query;
 
@@ -96,6 +92,7 @@ export async function filterDishes(
   const dishes = (data as DishCatalogRow[]).map(dishRowToDishCatalogItem);
 
   return dishes.filter((dish) => {
+    if (avoidDishIds.includes(dish.dish_id)) return false;
     const hasAllergen = dish.allergens.some((a) =>
       allergens.includes(a.toLowerCase())
     );

@@ -179,6 +179,7 @@ export async function replaceMealOnPlan(
     name: string;
     kcal: number;
     cuisine: CuisineType;
+    status: MealStatus;
     prep_minutes?: number;
     photo_url?: string | null;
   }
@@ -203,7 +204,7 @@ export async function replaceMealOnPlan(
     name: newMeal.name,
     kcal: newMeal.kcal,
     cuisine: newMeal.cuisine,
-    status: 'swapped',
+    status: newMeal.status,
     prep_minutes: newMeal.prep_minutes ?? null,
     photo_url: newMeal.photo_url ?? null,
   };

@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import {
   WeeklyPlan,
   UserProfile,
@@ -11,7 +10,8 @@ import {
   DishCatalogItem,
   CookingSkill,
 } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { generateUUID } from '../utils/uuid';
+import { isSupabaseConfigured, hasActiveSession } from '../lib/supabase';
 import * as repositories from '../data/repositories';
 import {
   filterDishesForUser as filterMockDishes,
@@ -30,8 +30,27 @@ function isRealUser(userId: string | undefined | null): boolean {
   return uuidRegex.test(userId);
 }
 
-function shouldPersistToSupabase(userId: string | undefined | null): boolean {
-  return isSupabaseConfigured() && isRealUser(userId);
+/**
+ * Determines whether to persist data to Supabase.
+ * 
+ * IMPORTANT: Local login UUIDs (generated client-side) are NOT valid Supabase Auth users.
+ * RLS policies require profiles.id to reference auth.users, so writes will fail without
+ * a real Supabase Auth session. This check gates writes on having an active session.
+ * 
+ * Full Supabase Auth integration is out of scope for this PR - the app currently uses
+ * mock auth. When real Supabase Auth is implemented, users will have valid sessions
+ * and persistence will work automatically.
+ */
+async function shouldPersistToSupabase(userId: string | undefined | null): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  if (!isRealUser(userId)) return false;
+  
+  const hasSession = await hasActiveSession();
+  if (!hasSession) {
+    return false;
+  }
+  
+  return true;
 }
 
 let cachedDishes: DishCatalogItem[] | null = null;
@@ -222,8 +241,8 @@ export async function generateWeeklyPlan(
 ): Promise<WeeklyPlan> {
   await new Promise((resolve) => setTimeout(resolve, 3000 + Math.random() * 2000));
 
-  const planId = uuidv4();
-  const userId = profile.user_id || uuidv4();
+  const planId = generateUUID();
+  const userId = profile.user_id || generateUUID();
   const weekStart = new Date();
   weekStart.setHours(0, 0, 0, 0);
   const weekStartStr = weekStart.toISOString().split('T')[0];
@@ -267,7 +286,7 @@ export async function generateWeeklyPlan(
     generator: 'static_kb_v1',
   };
 
-  if (shouldPersistToSupabase(userId)) {
+  if (await shouldPersistToSupabase(userId)) {
     try {
       await repositories.saveWeeklyPlan(plan);
     } catch (e) {
@@ -351,13 +370,14 @@ export async function swapMeal(
     };
   });
 
-  if (shouldPersistToSupabase(plan.user_id)) {
+  if (await shouldPersistToSupabase(plan.user_id)) {
     try {
       await repositories.replaceMealOnPlan(plan.plan_id, date, slot, {
         dish_id: newDish.dish_id,
         name: newDish.name,
         kcal: newDish.kcal,
         cuisine: newDish.cuisines[0] as CuisineType,
+        status: 'swapped',
         prep_minutes: newDish.prep_minutes,
         photo_url: newDish.photo_url,
       });
@@ -384,7 +404,7 @@ export async function dislikeMeal(
 
   const addedToAvoidance = currentMeal.dish_id;
 
-  if (shouldPersistToSupabase(plan.user_id)) {
+  if (await shouldPersistToSupabase(plan.user_id)) {
     try {
       await repositories.addAvoidance(plan.user_id, addedToAvoidance, 'disliked');
     } catch (e) {
@@ -430,7 +450,7 @@ export async function regenerateDay(
   const updatedPlan = { ...plan };
   updatedPlan.days = plan.days.map((day, idx) => (idx === dayIndex ? newDay : day));
 
-  if (shouldPersistToSupabase(plan.user_id)) {
+  if (await shouldPersistToSupabase(plan.user_id)) {
     try {
       for (const meal of newDay.meals) {
         await repositories.replaceMealOnPlan(plan.plan_id, date, meal.slot, {
@@ -438,6 +458,7 @@ export async function regenerateDay(
           name: meal.name,
           kcal: meal.kcal,
           cuisine: meal.cuisine,
+          status: 'planned',
           prep_minutes: meal.prep_minutes,
           photo_url: meal.photo_url,
         });
@@ -472,7 +493,7 @@ export async function setDayFlags(
     };
   });
 
-  if (shouldPersistToSupabase(plan.user_id)) {
+  if (await shouldPersistToSupabase(plan.user_id)) {
     try {
       await repositories.updateDayFlags(plan.plan_id, date, flags);
     } catch (e) {
@@ -506,7 +527,7 @@ export async function logMealStatus(
     };
   });
 
-  if (shouldPersistToSupabase(plan.user_id)) {
+  if (await shouldPersistToSupabase(plan.user_id)) {
     try {
       await repositories.updateMealStatus(plan.plan_id, date, slot, status);
     } catch (e) {
@@ -518,7 +539,7 @@ export async function logMealStatus(
 }
 
 export async function getAvoidanceList(userId: string): Promise<string[]> {
-  if (shouldPersistToSupabase(userId)) {
+  if (await shouldPersistToSupabase(userId)) {
     try {
       return await repositories.listAvoidedDishIds(userId);
     } catch (e) {
@@ -529,7 +550,7 @@ export async function getAvoidanceList(userId: string): Promise<string[]> {
 }
 
 export async function getLatestPlan(userId: string): Promise<WeeklyPlan | null> {
-  if (shouldPersistToSupabase(userId)) {
+  if (await shouldPersistToSupabase(userId)) {
     try {
       return await repositories.getLatestPlan(userId);
     } catch (e) {
