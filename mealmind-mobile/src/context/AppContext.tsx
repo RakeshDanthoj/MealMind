@@ -18,7 +18,7 @@ import {
   logMealStatus 
 } from '../services/mock-api';
 import { analytics } from '../services/analytics';
-import { DEV_SKIP_USER_ID } from '../constants';
+import { DEV_SKIP_AUTH, DEV_SKIP_USER_ID } from '../constants';
 
 interface AppState {
   isLoading: boolean;
@@ -389,6 +389,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const skipLoginDev = async () => {
+    if (!DEV_SKIP_AUTH) return;
+
     const auth: AuthState = {
       isAuthenticated: true,
       user_id: DEV_SKIP_USER_ID,
@@ -409,6 +411,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const skipToSamplePlanDev = async (): Promise<WeeklyPlan> => {
+    if (!DEV_SKIP_AUTH) {
+      throw new Error('skipToSamplePlanDev is only available in dev mode');
+    }
+
     const auth: AuthState = {
       isAuthenticated: true,
       user_id: DEV_SKIP_USER_ID,
