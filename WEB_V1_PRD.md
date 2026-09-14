@@ -37,7 +37,7 @@ Build a full web app, not a marketing-only site, and not Expo-for-web. Same prod
 ## Core Loop (parity with ONBOARDING_FIRST_PLAN_UX.md)
 
 1. Privacy consent (DPDP)
-2. 10-step onboarding
+2. 11-step onboarding (includes dietary preference Q9: vegetarian / eggetarian / non_vegetarian)
 3. Medical disclaimer if conditions flagged
 4. Generate plan
 5. First-plan reveal
