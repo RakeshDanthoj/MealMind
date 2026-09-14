@@ -20,7 +20,7 @@ The plan engine only serves dishes from a curated catalog. Nutrition numbers and
 | Cuisines | Indian (general), North Indian, South Indian, Chinese (Indo-Chinese), Asian — each with enough breakfast/lunch/snack/dinner options for a full week + swaps |
 | Slots | Every dish tagged to ≥1 of: breakfast, lunch, snack, dinner |
 | Prep complexity | Mix of beginner / comfortable / advanced (skew beginner+comfortable for hectic users) |
-| Diet tags | Enough vegetarian coverage for India-default; include egg/non-veg clearly tagged |
+| Diet tags | Must support `diet_type` filter: every dish tagged `vegetarian`, `eggetarian`, or `non_vegetarian`. Vegetarian = no meat/fish/eggs. Eggetarian = vegetarian + eggs. Non-veg = meat/fish/eggs. Enough vegetarian coverage for India-default. |
 | Limited-safe subset | ≥40 generic calorie-band meals marked `limited_safe` for unacked medical mode |
 | Cheat-suitable | ≥15 dishes (still within soft kcal — not junk free-for-all) |
 | Festive-tagged | ≥20 healthier festive variants (Diwali, Eid, Onam, Holi, Christmas, Pongal — MVP set) |
@@ -39,7 +39,7 @@ Every catalog row must have:
 - [ ] `meal_slots[]`
 - [ ] `ingredients[]` (primary allergens-relevant list)
 - [ ] `allergens[]` (empty array if none)
-- [ ] `diet_tags[]` (e.g. vegetarian, high_protein, low_oil)
+- [ ] `diet_tags[]` — **required:** one of `vegetarian`, `eggetarian`, `non_vegetarian` for diet filter; optional: high_protein, low_oil, etc.
 - [ ] `prep_complexity` + `prep_minutes`
 - [ ] `kcal`, `protein_g`, `carbs_g`, `fat_g` (per standard serving)
 - [ ] `cheat_suitable` (bool)
@@ -98,7 +98,9 @@ Reject or fix if:
 |---------|----------------|
 | Hectic, weight loss, North Indian, beginner | 7×4 plan; snack kcal smaller; mostly beginner prep |
 | Muscle gain, mixed cuisines, advanced | Higher protein days; variety across cuisines |
-| Vegetarian, South Indian, allergens: dairy | Zero dairy dishes; South Indian ≥70% |
+| Vegetarian, South Indian, allergens: dairy | Zero egg/meat/fish dishes; zero dairy; South Indian ≥70% |
+| Eggetarian, North Indian | Zero meat/fish dishes; eggs allowed; North Indian ≥70% |
+| Non-vegetarian, avoid beef+pork | Zero beef/pork dishes; other meats + fish + eggs allowed |
 | Medical flag, disclaimer not acked | Only `limited_safe` dishes; mode=limited |
 
 ---
@@ -122,7 +124,9 @@ Festive dishes stay within soft kcal; prefer baked/roasted/lighter traditional v
 
 - Therapeutic medical menus  
 - Video recipes  
-- Continental / Jain / full vegan lines (P2)  
+- Continental cuisine line  
+- Vegan / Jain / Satvik diet tags (P2 — requires dedicated catalog coverage before onboarding can offer these options)  
+- Pescatarian / flexitarian diet options (P2)  
 - Live scraped recipes  
 
 ---

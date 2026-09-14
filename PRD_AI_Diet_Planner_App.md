@@ -96,7 +96,7 @@ Video recipes
 
 ## 6. Onboarding & Personalization 
 
-### 6.1 Onboarding Questions 
+### 6.1 Onboarding Questions (11 steps)
 
 1. Primary goal (healthy lifestyle, weight loss, muscle gain, maintenance, etc.) 
 
@@ -110,15 +110,28 @@ Video recipes
 
 6. Activity level (Sedentary / Lightly active / Moderately active / Very active) 
 
-7. Medical conditions (optional field, triggers — 
-
-disclaimer see Section 9) 
+7. Medical conditions (optional field, triggers disclaimer — see Section 9) 
 
 8. Cooking skill level (with future sub-customization, e.g., air fryer vs. stovetop) 
 
-9. Cuisine preference — multi-select checkboxes: Indian (general), North Indian, South Indian, Chinese, Asian 
+9. Dietary preference — single select `diet_type`:
+   - **vegetarian** — no meat, fish, or eggs; dairy OK. Helper text: "Indian vegetarian."
+   - **eggetarian** — vegetarian + eggs
+   - **non_vegetarian** — includes meat, fish, eggs
+   
+   If non_vegetarian selected: optional multi-select `avoid_meats` (label: "I don't eat"): beef, pork, mutton, seafood
 
-10. Allergens (freeform/tag-based, can be added/edited anytime) 
+10. Cuisine preference — multi-select checkboxes: Indian (general), North Indian, South Indian, Chinese, Asian 
+
+11. Allergens (freeform/tag-based, can be added/edited anytime)
+
+**Diet filter rules:**
+- Vegetarian users never see egg, meat, or fish dishes (hard filter at plan generation)
+- Eggetarian users never see meat or fish dishes (hard filter)
+- Do not duplicate diet restrictions as allergens (e.g., do not force egg as an allergen when diet is vegetarian — the engine already excludes eggs)
+- Cuisine preference is soft (preference weighting); allergens are medical/intolerance (hard exclusion)
+
+**Out of scope until catalog coverage:** vegan, Jain/Satvik, pescatarian, flexitarian 
 
 ### 6.2 Medical Condition Handling 
 

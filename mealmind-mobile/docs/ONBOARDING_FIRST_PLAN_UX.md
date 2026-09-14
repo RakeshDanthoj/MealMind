@@ -55,7 +55,7 @@ flowchart TD
 
 ### 3. Onboarding questionnaire
 
-One question per screen (or tight grouped pairs). Progress indicator (e.g. 3/10). Allow Back. Save answers as they go (resume if drop-off).
+One question per screen (or tight grouped pairs). Progress indicator (e.g. 3/11). Allow Back. Save answers as they go (resume if drop-off).
 
 | # | Field | UI | Required | Notes |
 |---|--------|-----|----------|-------|
@@ -67,8 +67,17 @@ One question per screen (or tight grouped pairs). Progress indicator (e.g. 3/10)
 | 6 | Activity level | Single select | Yes | Sedentary / Lightly / Moderately / Very active |
 | 7 | Medical conditions | Optional tags + "None" | No | Freeform/tag; triggers disclaimer path |
 | 8 | Cooking skill | Single select | Yes | Beginner / Comfortable / Advanced (air fryer vs stove = later) |
-| 9 | Cuisine preference | Multi-select chips | Yes (≥1) | Indian (general), North Indian, South Indian, Chinese, Asian |
-| 10 | Allergens | Tag input | No | Editable anytime in Profile |
+| 9 | Dietary preference | Single select | Yes | `diet_type`: vegetarian (no meat/fish/eggs, dairy OK — "Indian vegetarian"), eggetarian (vegetarian + eggs), non_vegetarian |
+| 9b | Meats to avoid | Multi-select chips | No | Only shown if non_vegetarian. Options: beef, pork, mutton, seafood. Label: "I don't eat" |
+| 10 | Cuisine preference | Multi-select chips | Yes (≥1) | Indian (general), North Indian, South Indian, Chinese, Asian |
+| 11 | Allergens | Tag input | No | Editable anytime in Profile |
+
+**Diet filter rules:**
+- Vegetarian: hard-exclude egg, meat, fish dishes. Do not also add egg as an allergen (engine handles it).
+- Eggetarian: hard-exclude meat, fish dishes.
+- Cuisine is preference weighting; allergens are medical/intolerance hard exclusions.
+
+**Out of scope until catalog coverage:** vegan, Jain/Satvik, pescatarian, flexitarian.
 
 **Empty states:** If user skips optional medical/allergens, treat as none — don't block.
 
@@ -117,7 +126,7 @@ Also show disclaimer again whenever a plan or recipe is delivered to a flagged u
 
 ### 8. Empty / edge cases
 - Offline: show last cached plan; disable regenerate/swap with reason.  
-- No cuisines selected: block continue on Q9.  
+- No cuisines selected: block continue on Q10.  
 - User with medical flag + no ack: cannot dismiss limited-plan banner without ack.
 
 ---

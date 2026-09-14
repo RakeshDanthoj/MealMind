@@ -76,13 +76,14 @@ New user can sign up on Vercel URL → finish onboarding → see weekly plan →
 ## P0 — Foundation (must ship first)
 
 ### P0.1 Product & design
-- [ ] Lock onboarding question set (PRD §6.1) and medical disclaimer triggers (§6.2 / §9)
+- [ ] Lock onboarding question set (PRD §6.1 — 11 steps including Q9 diet_type) and medical disclaimer triggers (§6.2 / §9)
 - [ ] Wireframes / UX flow: signup → questionnaire → first plan reveal → meal card actions
 - [ ] Define plan card IA: day view, meal slots, swap / don't like / regenerate / cheat / festive
 
 ### P0.2 Personalization engine (MVP cut)
 - [ ] **Static** dietician-validated knowledge base / rule templates (not live web ingestion)
 - [ ] Generate 7-day plan from onboarding inputs
+- [ ] Diet type filter (hard exclusion): vegetarian (no egg/meat/fish), eggetarian (no meat/fish), non_vegetarian; optional avoid_meats for non-veg users
 - [ ] Cuisine multi-select: Indian (general), North Indian, South Indian, Chinese (Indo-Chinese), Asian
 - [ ] Per-meal: Swap (preserve day balance), Don't like (avoid later), Regenerate day
 - [ ] Cheat day: user-marked or AI-suggested; clean ingredients, not unrestricted binge
