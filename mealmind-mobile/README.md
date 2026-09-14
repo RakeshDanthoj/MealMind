@@ -220,6 +220,15 @@ First-session overlays:
 - **State persisted** with AsyncStorage for resume on drop-off
 - **Types match** WeeklyPlan schema from AI scoping doc
 
+### Dev Skip Login
+
+When `DEV_SKIP_AUTH` is enabled (defaults to `__DEV__`), two skip buttons appear on the Welcome screen:
+
+- **Skip login (dev)** — Creates a mock user (`dev-skip-user`) and routes to privacy consent → onboarding flow
+- **Skip to Plan home (dev)** — Creates a mock user with a complete profile and generates a sample weekly plan, jumping directly to the Plan home tab
+
+These are convenience shortcuts for developers to quickly access screens without completing auth/onboarding. The flag is defined in `src/constants/index.ts` and should be disabled before production.
+
 ## Contract Documents
 
 See `/docs` folder for:

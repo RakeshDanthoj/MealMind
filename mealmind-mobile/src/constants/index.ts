@@ -7,6 +7,16 @@ import {
   CuisineType 
 } from '../types';
 
+/**
+ * DEV_SKIP_AUTH: Enables "Skip login (dev)" buttons on Welcome screen.
+ * 
+ * WARNING: This is a temporary developer convenience feature.
+ * Set to `false` or remove entirely before production release.
+ */
+export const DEV_SKIP_AUTH = __DEV__;
+
+export const DEV_SKIP_USER_ID = 'dev-skip-user';
+
 export const COLORS = {
   primary: '#2E7D32',
   primaryLight: '#4CAF50',
