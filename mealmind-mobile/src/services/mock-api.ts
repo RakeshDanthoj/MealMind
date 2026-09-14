@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '../utils/uuid';
 import {
   WeeklyPlan,
   UserProfile,
@@ -146,8 +146,8 @@ export async function generateWeeklyPlan(
 ): Promise<WeeklyPlan> {
   await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
 
-  const planId = uuidv4();
-  const userId = profile.user_id || uuidv4();
+  const planId = generateUUID();
+  const userId = profile.user_id || generateUUID();
   const weekStart = new Date();
   weekStart.setHours(0, 0, 0, 0);
   const weekStartStr = weekStart.toISOString().split('T')[0];
