@@ -1,15 +1,4 @@
-# MealMind Mobile App
 
-AI-powered personalized diet and meal planner for urban Indian professionals. Built with Expo (React Native) + TypeScript.
-
-## Quick Start
-
-```bash
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Start the development server
-npx expo start
 ```
 
 ## Supabase Configuration
