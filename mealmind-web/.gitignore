@@ -37,6 +37,19 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local deploy scratch
+_deploy*
+_mcp*
+_api*
+_d[0-9].txt
+_fix*
+_files_chunk*
+_final*
+_poll*
+_redeploy*
+_slim*
+_tiny*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
