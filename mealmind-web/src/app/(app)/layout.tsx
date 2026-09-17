@@ -7,18 +7,12 @@ import { useApp } from "@/context/AppContext";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { ready, userId, profile, plan } = useApp();
+  const { ready, profile, plan, ensureGuestSession } = useApp();
 
   useEffect(() => {
     if (!ready) return;
-    if (!userId) {
-      router.replace("/auth");
-      return;
-    }
-    if (!profile?.privacy_consent_given) {
-      router.replace("/privacy-consent");
-      return;
-    }
+    // MVP: no login gate — ensure a local guest session and continue the plan flow.
+    ensureGuestSession();
     if (!profile?.onboarding_completed) {
       router.replace("/onboarding");
       return;
@@ -26,7 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!plan) {
       router.replace("/generating-plan");
     }
-  }, [ready, userId, profile, plan, router]);
+  }, [ready, profile, plan, router, ensureGuestSession]);
 
   if (!ready) {
     return <div className="p-10 text-[var(--ink-muted)]">Loading…</div>;

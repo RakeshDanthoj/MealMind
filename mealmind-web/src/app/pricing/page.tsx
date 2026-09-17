@@ -58,7 +58,7 @@ export default function PricingPage() {
           ))}
         </div>
         <Link
-          href="/auth?mode=signup"
+          href="/onboarding"
           className="mt-10 inline-flex rounded-full bg-[var(--citrus)] px-6 py-3 text-sm font-semibold text-[var(--forest-deep)]"
         >
           Start free trial

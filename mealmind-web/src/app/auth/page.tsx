@@ -1,10 +1,6 @@
-import { Suspense } from "react";
-import AuthPage from "./AuthClient";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="p-10 text-[var(--ink-muted)]">Loading…</div>}>
-      <AuthPage />
-    </Suspense>
-  );
+/** MVP: auth is deferred — send users into the questionnaire. */
+export default function AuthPage() {
+  redirect("/onboarding");
 }

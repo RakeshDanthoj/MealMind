@@ -49,6 +49,8 @@ interface AppState {
 
 interface AppActions {
   signInLocal: (email: string) => void;
+  /** MVP: create an anonymous local session so questionnaire works without login. */
+  ensureGuestSession: () => void;
   signOut: () => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
   saveOnboarding: (answers: Partial<UserProfile>) => void;
@@ -144,6 +146,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProfile(existing);
     }
   }, []);
+
+  const ensureGuestSession = useCallback(() => {
+    const existingSession = localStore.getSession();
+    if (existingSession) {
+      if (!userId) {
+        setUserId(existingSession.user_id);
+        setEmail(existingSession.email);
+      }
+      if (!profile) {
+        const existingProfile = localStore.getProfile();
+        if (existingProfile) {
+          setProfile(existingProfile);
+        } else {
+          const p = createEmptyProfile(existingSession.user_id);
+          localStore.setProfile(p);
+          setProfile(p);
+        }
+      }
+      return;
+    }
+    signInLocal("guest@mealmind.app");
+  }, [userId, profile, signInLocal]);
 
   const signOut = useCallback(() => {
     localStore.clearAll();
@@ -321,6 +345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       busy,
       error,
       signInLocal,
+      ensureGuestSession,
       signOut,
       updateProfile,
       saveOnboarding,
@@ -353,6 +378,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       busy,
       error,
       signInLocal,
+      ensureGuestSession,
       signOut,
       updateProfile,
       saveOnboarding,

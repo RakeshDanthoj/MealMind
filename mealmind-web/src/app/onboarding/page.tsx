@@ -1,72 +1,52 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { useApp } from "@/context/AppContext";
+import {
+  ACTIVITY_OPTIONS,
+  COMMON_ALLERGENS,
+  COMMON_MEDICAL_CONDITIONS,
+  COOKING_SKILL_OPTIONS,
+  CUISINE_OPTIONS,
+  GENDER_OPTIONS,
+  GOAL_OPTIONS,
+  ONBOARDING_STEPS,
+  ROUTINE_OPTIONS,
+  TOTAL_ONBOARDING_STEPS,
+} from "@/constants/onboarding";
 import type {
   ActivityLevel,
   CookingSkill,
   CuisineType,
   DailyRoutine,
-  DietType,
   Gender,
-  MeatAvoid,
   PrimaryGoal,
   UserProfile,
 } from "@/types";
 
-type StepKey =
-  | "goal"
-  | "routine"
-  | "age"
-  | "gender"
-  | "body"
-  | "activity"
-  | "medical"
-  | "cooking"
-  | "diet"
-  | "cuisines"
-  | "allergens";
-
-const STEPS: { key: StepKey; title: string }[] = [
-  { key: "goal", title: "What’s your primary goal?" },
-  { key: "routine", title: "How hectic is your day?" },
-  { key: "age", title: "How old are you?" },
-  { key: "gender", title: "Gender" },
-  { key: "body", title: "Height & weight" },
-  { key: "activity", title: "Activity level" },
-  { key: "medical", title: "Any medical conditions?" },
-  { key: "cooking", title: "Cooking skill" },
-  { key: "diet", title: "Dietary preference" },
-  { key: "cuisines", title: "Cuisine preferences" },
-  { key: "allergens", title: "Allergens to avoid" },
-];
-
 export default function OnboardingPage() {
   const router = useRouter();
-  const { saveOnboarding, profile } = useApp();
+  const { saveOnboarding, ensureGuestSession, ready } = useApp();
   const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  // Start blank like the mobile questionnaire (don't pre-select empty-profile defaults).
   const [answers, setAnswers] = useState<Partial<UserProfile>>({
-    goal: profile?.goal,
-    routine: profile?.routine,
-    age: profile?.age || 30,
-    gender: profile?.gender,
-    height_cm: profile?.height_cm || 170,
-    weight_kg: profile?.weight_kg || 70,
-    activity: profile?.activity,
-    medical_conditions: profile?.medical_conditions || [],
-    cooking_skill: profile?.cooking_skill,
-    diet_type: profile?.diet_type || "vegetarian",
-    meats_avoided: profile?.meats_avoided || [],
-    cuisines: profile?.cuisines || [],
-    allergens: profile?.allergens || [],
+    medical_conditions: [],
+    allergens: [],
+    cuisines: [],
   });
-  const [medicalInput, setMedicalInput] = useState("");
-  const [allergenInput, setAllergenInput] = useState("");
 
-  const current = STEPS[step];
-  const progress = useMemo(() => `${step + 1}/${STEPS.length}`, [step]);
+  useEffect(() => {
+    if (ready) ensureGuestSession();
+  }, [ready, ensureGuestSession]);
+
+  const current = ONBOARDING_STEPS[step];
+  const progressLabel = useMemo(
+    () => `${step + 1}/${TOTAL_ONBOARDING_STEPS}`,
+    [step]
+  );
 
   function patch(p: Partial<UserProfile>) {
     setAnswers((prev) => ({ ...prev, ...p }));
@@ -79,7 +59,7 @@ export default function OnboardingPage() {
       case "routine":
         return Boolean(answers.routine);
       case "age":
-        return (answers.age || 0) >= 13;
+        return (answers.age || 0) > 0;
       case "gender":
         return Boolean(answers.gender);
       case "body":
@@ -90,8 +70,6 @@ export default function OnboardingPage() {
         return true;
       case "cooking":
         return Boolean(answers.cooking_skill);
-      case "diet":
-        return Boolean(answers.diet_type);
       case "cuisines":
         return (answers.cuisines?.length || 0) >= 1;
       case "allergens":
@@ -102,60 +80,83 @@ export default function OnboardingPage() {
   }
 
   function finish() {
+    setLoading(true);
     saveOnboarding(answers);
     const hasMedical = (answers.medical_conditions?.length || 0) > 0;
-    if (hasMedical) {
-      router.push("/medical-disclaimer");
-    } else {
-      router.push("/generating-plan");
-    }
+    router.push(hasMedical ? "/medical-disclaimer" : "/generating-plan");
   }
 
   function next() {
-    if (step === STEPS.length - 1) {
+    if (step === TOTAL_ONBOARDING_STEPS - 1) {
       finish();
       return;
     }
     setStep((s) => s + 1);
   }
 
+  function back() {
+    if (step > 0) setStep((s) => s - 1);
+  }
+
+  function toggleNoneOrList(
+    field: "medical_conditions" | "allergens",
+    value: string,
+    noneSelected: boolean
+  ) {
+    const currentList = answers[field] || [];
+    if (value === "none") {
+      patch({ [field]: [] });
+      return;
+    }
+    if (noneSelected || currentList.length === 0) {
+      patch({ [field]: [value] });
+      return;
+    }
+    const active = currentList.includes(value);
+    patch({
+      [field]: active
+        ? currentList.filter((item) => item !== value)
+        : [...currentList, value],
+    });
+  }
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col px-6 py-10">
-      <div className="mb-8 flex items-center justify-between text-sm text-[var(--ink-muted)]">
-        <span>Onboarding</span>
-        <span>{progress}</span>
+    <div className="mx-auto flex min-h-screen max-w-xl flex-col px-6 py-8">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={back}
+          disabled={step === 0}
+          className="text-sm font-medium text-[var(--forest)] disabled:opacity-40"
+        >
+          ← Back
+        </button>
+        <span className="text-sm text-[var(--ink-muted)]">{progressLabel}</span>
       </div>
-      <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-[var(--forest)]/10">
+
+      <div className="mb-8 h-1.5 overflow-hidden rounded-full bg-[var(--forest)]/10">
         <div
           className="h-full rounded-full bg-[var(--citrus)] transition-all"
-          style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          style={{ width: `${((step + 1) / TOTAL_ONBOARDING_STEPS) * 100}%` }}
         />
       </div>
+
       <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--forest)]">
         {current.title}
       </h1>
+      <p className="mt-2 text-[var(--ink-muted)]">{current.subtitle}</p>
 
       <div className="mt-8 flex-1 space-y-3">
         {current.key === "goal" && (
-          <ChoiceGrid
-            options={[
-              ["healthy_lifestyle", "Healthy lifestyle"],
-              ["weight_loss", "Weight loss"],
-              ["muscle_gain", "Muscle gain"],
-              ["maintenance", "Maintenance"],
-              ["other", "Other"],
-            ]}
+          <ChoiceList
+            options={GOAL_OPTIONS}
             value={answers.goal}
             onChange={(v) => patch({ goal: v as PrimaryGoal })}
           />
         )}
         {current.key === "routine" && (
-          <ChoiceGrid
-            options={[
-              ["hectic", "Hectic"],
-              ["some_time", "Some time"],
-              ["flexible", "Flexible"],
-            ]}
+          <ChoiceList
+            options={ROUTINE_OPTIONS}
             value={answers.routine}
             onChange={(v) => patch({ routine: v as DailyRoutine })}
           />
@@ -163,284 +164,226 @@ export default function OnboardingPage() {
         {current.key === "age" && (
           <input
             type="number"
-            min={13}
-            max={100}
+            min={1}
+            max={120}
+            inputMode="numeric"
+            placeholder="Enter your age"
             value={answers.age || ""}
-            onChange={(e) => patch({ age: Number(e.target.value) })}
-            className="w-full rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3"
+            onChange={(e) => patch({ age: Number(e.target.value) || 0 })}
+            className="w-full rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-4 text-center text-lg"
           />
         )}
         {current.key === "gender" && (
-          <ChoiceGrid
-            options={[
-              ["male", "Male"],
-              ["female", "Female"],
-              ["other", "Other"],
-              ["prefer_not_to_say", "Prefer not to say"],
-            ]}
+          <ChoiceList
+            options={GENDER_OPTIONS}
             value={answers.gender}
             onChange={(v) => patch({ gender: v as Gender })}
           />
         )}
         {current.key === "body" && (
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-sm">
-              Height (cm)
-              <input
-                type="number"
-                value={answers.height_cm || ""}
-                onChange={(e) => patch({ height_cm: Number(e.target.value) })}
-                className="mt-1 w-full rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3"
-              />
+            <label className="text-sm font-medium text-[var(--ink)]">
+              Height
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="170"
+                  value={answers.height_cm || ""}
+                  onChange={(e) =>
+                    patch({ height_cm: Number(e.target.value) || 0 })
+                  }
+                  className="w-full rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3 text-center"
+                />
+                <span className="text-[var(--ink-muted)]">cm</span>
+              </div>
             </label>
-            <label className="text-sm">
-              Weight (kg)
-              <input
-                type="number"
-                value={answers.weight_kg || ""}
-                onChange={(e) => patch({ weight_kg: Number(e.target.value) })}
-                className="mt-1 w-full rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3"
-              />
+            <label className="text-sm font-medium text-[var(--ink)]">
+              Weight
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="70"
+                  value={answers.weight_kg || ""}
+                  onChange={(e) =>
+                    patch({ weight_kg: Number(e.target.value) || 0 })
+                  }
+                  className="w-full rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3 text-center"
+                />
+                <span className="text-[var(--ink-muted)]">kg</span>
+              </div>
             </label>
           </div>
         )}
         {current.key === "activity" && (
-          <ChoiceGrid
-            options={[
-              ["sedentary", "Sedentary"],
-              ["lightly_active", "Lightly active"],
-              ["moderately_active", "Moderately active"],
-              ["very_active", "Very active"],
-            ]}
+          <ChoiceList
+            options={ACTIVITY_OPTIONS}
             value={answers.activity}
             onChange={(v) => patch({ activity: v as ActivityLevel })}
           />
         )}
         {current.key === "medical" && (
           <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                value={medicalInput}
-                onChange={(e) => setMedicalInput(e.target.value)}
-                placeholder="e.g. diabetes, PCOS"
-                className="flex-1 rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  if (!medicalInput.trim()) return;
-                  patch({
-                    medical_conditions: [
-                      ...(answers.medical_conditions || []),
-                      medicalInput.trim(),
-                    ],
-                  });
-                  setMedicalInput("");
-                }}
-              >
-                Add
-              </Button>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => patch({ medical_conditions: [] })}
-            >
-              None
-            </Button>
-            <ChipList
-              items={answers.medical_conditions || []}
-              onRemove={(item) =>
-                patch({
-                  medical_conditions: (answers.medical_conditions || []).filter((x) => x !== item),
-                })
+            <ChipGroup
+              options={[
+                { value: "none", label: "None" },
+                ...COMMON_MEDICAL_CONDITIONS.map((c) => ({
+                  value: c.toLowerCase(),
+                  label: c,
+                })),
+              ]}
+              selected={
+                (answers.medical_conditions || []).length === 0
+                  ? ["none"]
+                  : answers.medical_conditions || []
+              }
+              onToggle={(value) =>
+                toggleNoneOrList(
+                  "medical_conditions",
+                  value,
+                  (answers.medical_conditions || []).length === 0
+                )
               }
             />
+            <p className="text-sm italic text-[var(--ink-muted)]">
+              Select &quot;None&quot; if you don&apos;t have any medical conditions
+            </p>
           </div>
         )}
         {current.key === "cooking" && (
-          <ChoiceGrid
-            options={[
-              ["beginner", "Beginner"],
-              ["comfortable", "Comfortable"],
-              ["advanced", "Advanced"],
-            ]}
+          <ChoiceList
+            options={COOKING_SKILL_OPTIONS}
             value={answers.cooking_skill}
             onChange={(v) => patch({ cooking_skill: v as CookingSkill })}
           />
         )}
-        {current.key === "diet" && (
-          <div className="space-y-4">
-            <ChoiceGrid
-              options={[
-                ["vegetarian", "Vegetarian"],
-                ["eggetarian", "Eggetarian"],
-                ["non_vegetarian", "Non-vegetarian"],
-              ]}
-              value={answers.diet_type}
-              onChange={(v) => patch({ diet_type: v as DietType })}
-            />
-            {answers.diet_type === "non_vegetarian" && (
-              <MultiChoice
-                label="I don’t eat"
-                options={[
-                  ["beef", "Beef"],
-                  ["pork", "Pork"],
-                  ["mutton", "Mutton"],
-                  ["seafood", "Seafood"],
-                ]}
-                values={answers.meats_avoided || []}
-                onChange={(values) => patch({ meats_avoided: values as MeatAvoid[] })}
-              />
-            )}
-          </div>
-        )}
         {current.key === "cuisines" && (
-          <MultiChoice
-            options={[
-              ["indian_general", "Indian (general)"],
-              ["north_indian", "North Indian"],
-              ["south_indian", "South Indian"],
-              ["chinese", "Chinese"],
-              ["asian", "Asian"],
-            ]}
-            values={answers.cuisines || []}
-            onChange={(values) => patch({ cuisines: values as CuisineType[] })}
+          <ChipGroup
+            options={CUISINE_OPTIONS.map((c) => ({
+              value: c.value,
+              label: c.label,
+            }))}
+            selected={answers.cuisines || []}
+            onToggle={(value) => {
+              const selected = answers.cuisines || [];
+              const active = selected.includes(value as CuisineType);
+              patch({
+                cuisines: active
+                  ? selected.filter((c) => c !== value)
+                  : [...selected, value as CuisineType],
+              });
+            }}
           />
         )}
         {current.key === "allergens" && (
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                value={allergenInput}
-                onChange={(e) => setAllergenInput(e.target.value)}
-                placeholder="e.g. peanuts, dairy"
-                className="flex-1 rounded-2xl border border-[var(--forest)]/15 bg-white/70 px-4 py-3"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  if (!allergenInput.trim()) return;
-                  patch({
-                    allergens: [...(answers.allergens || []), allergenInput.trim().toLowerCase()],
-                  });
-                  setAllergenInput("");
-                }}
-              >
-                Add
-              </Button>
-            </div>
-            <ChipList
-              items={answers.allergens || []}
-              onRemove={(item) =>
-                patch({ allergens: (answers.allergens || []).filter((x) => x !== item) })
-              }
-            />
-          </div>
+          <ChipGroup
+            options={[
+              { value: "none", label: "None" },
+              ...COMMON_ALLERGENS.map((a) => ({
+                value: a.toLowerCase(),
+                label: a,
+              })),
+            ]}
+            selected={
+              (answers.allergens || []).length === 0
+                ? ["none"]
+                : answers.allergens || []
+            }
+            onToggle={(value) =>
+              toggleNoneOrList(
+                "allergens",
+                value,
+                (answers.allergens || []).length === 0
+              )
+            }
+          />
         )}
       </div>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8 border-t border-[var(--forest)]/10 pt-6">
         <Button
           type="button"
-          variant="ghost"
-          disabled={step === 0}
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          className="w-full"
+          disabled={!canContinue() || loading}
+          onClick={next}
         >
-          Back
-        </Button>
-        <Button type="button" className="flex-1" disabled={!canContinue()} onClick={next}>
-          {step === STEPS.length - 1 ? "Generate my plan" : "Continue"}
+          {step === TOTAL_ONBOARDING_STEPS - 1 ? "Generate my plan" : "Continue"}
         </Button>
       </div>
     </div>
   );
 }
 
-function ChoiceGrid({
+function ChoiceList({
   options,
   value,
   onChange,
 }: {
-  options: [string, string][];
+  options: { value: string; label: string; description?: string }[];
   value?: string;
   onChange: (value: string) => void;
 }) {
   return (
     <div className="grid gap-2">
-      {options.map(([id, label]) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => onChange(id)}
-          className={`rounded-2xl border px-4 py-3 text-left transition ${
-            value === id
-              ? "border-[var(--forest)] bg-[var(--forest)] text-[var(--cream-soft)]"
-              : "border-[var(--forest)]/15 bg-white/60 hover:border-[var(--forest)]/40"
-          }`}
-        >
-          {label}
-        </button>
-      ))}
+      {options.map((option) => {
+        const selected = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`rounded-2xl border px-4 py-3 text-left transition ${
+              selected
+                ? "border-[var(--forest)] bg-[var(--forest)] text-[var(--cream-soft)]"
+                : "border-[var(--forest)]/15 bg-white/60 hover:border-[var(--forest)]/40"
+            }`}
+          >
+            <span className="block font-medium">{option.label}</span>
+            {option.description && (
+              <span
+                className={`mt-0.5 block text-sm ${
+                  selected ? "text-white/80" : "text-[var(--ink-muted)]"
+                }`}
+              >
+                {option.description}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function MultiChoice({
+function ChipGroup({
   options,
-  values,
-  onChange,
-  label,
+  selected,
+  onToggle,
 }: {
-  options: [string, string][];
-  values: string[];
-  onChange: (values: string[]) => void;
-  label?: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onToggle: (value: string) => void;
 }) {
   return (
-    <div className="space-y-2">
-      {label && <p className="text-sm text-[var(--ink-muted)]">{label}</p>}
-      <div className="flex flex-wrap gap-2">
-        {options.map(([id, text]) => {
-          const active = values.includes(id);
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() =>
-                onChange(active ? values.filter((v) => v !== id) : [...values, id])
-              }
-              className={`rounded-full px-4 py-2 text-sm ${
-                active
-                  ? "bg-[var(--forest)] text-[var(--cream-soft)]"
-                  : "bg-white/70 text-[var(--ink)] border border-[var(--forest)]/15"
-              }`}
-            >
-              {text}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ChipList({ items, onRemove }: { items: string[]; onRemove: (item: string) => void }) {
-  if (!items.length) return null;
-  return (
     <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <button
-          key={item}
-          type="button"
-          onClick={() => onRemove(item)}
-          className="rounded-full bg-[var(--sage)] px-3 py-1 text-sm text-[var(--forest)]"
-        >
-          {item} ×
-        </button>
-      ))}
+      {options.map((option) => {
+        const active = selected.includes(option.value);
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onToggle(option.value)}
+            className={`rounded-full px-4 py-2 text-sm transition ${
+              active
+                ? "bg-[var(--forest)] text-[var(--cream-soft)]"
+                : "border border-[var(--forest)]/15 bg-white/70 text-[var(--ink)]"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 const steps = [
   {
     title: "Tell us your life",
-    body: "Goals, routine, cooking skill, diet preference, and cuisines — eleven short questions.",
+    body: "Goals, routine, cooking skill, cuisines, and more — ten short questions.",
   },
   {
     title: "Get a weekly plan",
